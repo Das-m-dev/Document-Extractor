@@ -23,6 +23,7 @@ Desktop.ini
 logs/
 uploads/
 *.pdf
+*.xlsx
 !.gitkeep
 
 .cache/
