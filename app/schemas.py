@@ -17,6 +17,7 @@ class Invoice(BaseModel):
     tax: float | None = None
     total: float | None = None
     items: list[LineItem] = []
+    source: dict = {}
 
 
 class ExtractRequest(BaseModel):

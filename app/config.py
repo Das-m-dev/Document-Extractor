@@ -22,6 +22,12 @@ class Settings(BaseSettings):
     timeout: float = 120.0
     max_retries: int = 2
 
+    ocr_backend: str = "tesseract"
+    ocr_langs: str = "jpn+eng"
+    ocr_dpi: int = 200
+    tesseract_cmd: str | None = None
+    # vision_model: str = "qwen2.5vl:3b"
+
     @property
     def active_model(self) -> str:
         return self.openai_model if self.llm_provider == "openai" else self.ollama_model
