@@ -31,10 +31,11 @@ def check_output(invoice: Invoice, source_text: str) -> list[str]:
         raise OutputRejected("Output contains instruction text")
 
     # Soft rules (warnings)
-    if invoice.items and invoice.total is not None:
+    if invoice.items:
         computed = sum((i.quantity or 0) * (i.unit_price or 0) for i in invoice.items)
-        if computed and abs(computed - invoice.total) > 0.01:
-            warnings.append(f"items sum ({computed}) does not match total ({invoice.total})")
+        target = invoice.subtotal if invoice.subtotal is not None else invoice.total
+        if computed and target is not None and abs(computed - target) > 0.01:
+            warnings.append(f"items sum ({computed}) does not match {'subtotal' if invoice.subtotal is not None else 'total'} ({target})")
 
     # Grounding: key values should appear in the source text
     if invoice.invoice_number and invoice.invoice_number.lower() not in source_text.lower():

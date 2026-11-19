@@ -1,8 +1,7 @@
 import time
-
 import httpx
+import asyncio
 from fastapi import APIRouter, File, HTTPException, UploadFile
-
 from app.cache import extraction_cache, make_key
 from app.config import settings
 from app.guardrails.input_guard import InputRejected, check_input
@@ -11,11 +10,24 @@ from app.schemas import ExtractRequest, ExtractResponse
 from app.services.document import image_file_to_text, pdf_to_text
 from app.services.extractor import ExtractionError, extract_invoice
 from app.services.ocr import OCRError
+from app.services.document import image_file_to_text, pdf_to_text, xlsx_to_text
 
 router = APIRouter(prefix="/v1", tags=["extract"])
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
-ALLOWED_TYPES = {"application/pdf", "image/png", "image/jpeg", "image/webp"}
+XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+IMAGE_TYPES = {"image/png", "image/jpeg", "image/webp"}
+
+
+def _kind(file: UploadFile) -> str | None:
+    name = (file.filename or "").lower()
+    if file.content_type == "application/pdf" or name.endswith(".pdf"):
+        return "pdf"
+    if file.content_type == XLSX_TYPE or name.endswith(".xlsx"):
+        return "xlsx"
+    if file.content_type in IMAGE_TYPES or name.endswith((".png", ".jpg", ".jpeg", ".webp")):
+        return "image"
+    return None
 
 
 # ---------- shared logic: used by both endpoints ----------
@@ -75,16 +87,19 @@ async def extract(req: ExtractRequest):
 # ---------- endpoint 2: PDF or image upload ----------
 @router.post("/documents/extract", response_model=ExtractResponse)
 async def extract_document(file: UploadFile = File(...)):
-    if file.content_type not in ALLOWED_TYPES:
-        raise HTTPException(415, "Supported types: PDF, PNG, JPEG, WebP")
+    kind = _kind(file)
+    if kind is None:
+        raise HTTPException(415, "Supported types: PDF, PNG, JPEG, WebP, XLSX")
 
     data = await file.read()
     if len(data) > MAX_UPLOAD_BYTES:
         raise HTTPException(413, "File is larger than 10 MB")
 
     try:
-        if file.content_type == "application/pdf":
+        if kind == "pdf":
             text, source = await pdf_to_text(data)
+        elif kind == "xlsx":
+            text, source = await asyncio.to_thread(xlsx_to_text, data)
         else:
             text, source = await image_file_to_text(data)
     except ValueError as e:
