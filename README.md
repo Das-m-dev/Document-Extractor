@@ -80,12 +80,4 @@ scripts/
 tests/
 ```
 
-## Status
-
-- [x] text, PDF, scanned PDF and image (OCR), xlsx input
-- [x] review page, XLSX/CSV export
-- [x] guardrails, cache, tracing
-- [ ] labelled eval set, field-level accuracy, Tesseract vs vision model comparison
-- [ ] Docker, authentication, deployment
-
 Known gaps: only `.xlsx` is read (not `.xls` or `.xlsm`); formula cells that were never calculated by Excel have no cached value and come out empty; no authentication on the UI or API; the cache is per process and in memory; accuracy has not been measured, and OCR has only been tried on clean rendered samples.
